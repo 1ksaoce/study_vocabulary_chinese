@@ -1,0 +1,247 @@
+/* Reset CSS cơ bản */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #f4f6f8;
+    color: #333;
+}
+
+/* Header & Navigation */
+header {
+    background-color: white;
+    padding: 15px 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.nav-container {
+    display: flex;
+    gap: 10px;
+}
+
+.nav-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 20px;
+    background-color: #e9ecef;
+    cursor: pointer;
+    font-weight: 600;
+    color: #495057;
+    transition: all 0.3s ease;
+}
+
+.nav-btn.active, .nav-btn:hover {
+    background-color: #2b3a55;
+    color: white;
+}
+
+/* Tabs */
+.tab-content {
+    display: none;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Flashcard Grid (Giống ảnh image_61aafb) */
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.flashcard {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    position: relative;
+}
+
+.flashcard-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.hanzi-text {
+    font-size: 24px;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.word-type {
+    font-size: 12px;
+    background-color: #f1f3f5;
+    padding: 3px 8px;
+    border-radius: 10px;
+    color: #6c757d;
+}
+
+.btn-audio {
+    background: #e9ecef;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #495057;
+}
+
+.btn-audio:hover {
+    background: #ced4da;
+}
+
+.pinyin-text {
+    color: #868e96;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.definition {
+    font-size: 14px;
+    color: #495057;
+    margin-bottom: 8px;
+}
+
+.definition.en { font-style: italic; }
+.definition.vi { color: #2b3a55; font-weight: 500; }
+
+/* Form Thêm Từ */
+.form-container {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.input-group {
+    margin-bottom: 15px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.input-group input, .input-group textarea, .input-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.input-group textarea {
+    height: 80px;
+    resize: vertical;
+}
+
+/* Màn hình Ôn tập (Giống ảnh image_61ab96) */
+.review-card {
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto 20px auto;
+}
+
+.review-card h3 {
+    color: #4285f4;
+    font-size: 28px;
+    margin-bottom: 20px;
+}
+
+.review-input {
+    width: 80%;
+    padding: 12px;
+    font-size: 16px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    margin: 20px 0;
+    text-align: center;
+}
+
+.review-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.btn-primary, .btn-success, .btn-danger {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    color: white;
+}
+
+.btn-primary { background-color: #4285f4; }
+.btn-success { background-color: #34a853; }
+.btn-danger { background-color: #ea4335; }
+
+.feedback-msg {
+    margin-top: 15px;
+    font-weight: bold;
+}
+.feedback-msg.correct { color: #34a853; }
+.feedback-msg.wrong { color: #ea4335; }
+/* Giao diện nút SRS (Dựa trên hình ảnh tham khảo) */
+.srs-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 25px;
+    flex-wrap: wrap;
+}
+
+.btn-srs {
+    flex: 1;
+    min-width: 100px;
+    padding: 12px;
+    border: 2px solid;
+    border-radius: 12px;
+    background: #f8f9fa;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.btn-srs:hover { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+.btn-srs .key-hint { font-size: 11px; background: #e9ecef; padding: 3px 8px; border-radius: 6px; margin-bottom: 8px; color: #495057; }
+.btn-srs .label { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+.btn-srs .time { font-size: 13px; opacity: 0.8; }
+
+/* Màu sắc theo từng mức độ */
+.btn-srs-1 { border-color: #ffcdd2; color: #c62828; background-color: #ffebee; }
+.btn-srs-2 { border-color: #ffe0b2; color: #ef6c00; background-color: #fff3e0; }
+.btn-srs-3 { border-color: #c8e6c9; color: #2e7d32; background-color: #e8f5e9; }
+.btn-srs-4 { border-color: #bbdefb; color: #1565c0; background-color: #e3f2fd; }
+.btn-srs-5 { border-color: #e0e0e0; color: #616161; background-color: #f5f5f5; }
+
+/* Nút khôi phục */
+.btn-restore { background-color: #9c27b0; color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+.btn-restore:hover { background-color: #7b1fa2; }
