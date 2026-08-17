@@ -6,7 +6,6 @@
     <title>Học Từ Vựng Tiếng Trung</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Thư viện Pinyin-Pro hỗ trợ lấy phiên âm cực nhanh -->
     <script src="https://unpkg.com/pinyin-pro"></script>
 </head>
 <body>
@@ -20,25 +19,24 @@
     </header>
 
     <main>
+        <!-- Tab Danh sách -->
         <section id="tab-list" class="tab-content active">
             <div id="flashcard-grid" class="grid-container"></div>
         </section>
 
+        <!-- Tab Thêm từ & Quản lý JSON -->
         <section id="tab-add" class="tab-content">
             <form id="add-word-form" class="form-container">
                 <h2>Thêm Từ Mới</h2>
-                
-                <!-- Khu vực Chữ Hán được tích hợp nút Điền Tự Động -->
                 <div class="input-group">
                     <label>Chữ Hán (Hanzi):</label>
                     <div style="display: flex; gap: 8px;">
-                        <input type="text" id="input-hanzi" required placeholder="Nhập chữ Hán vào đây (VD: 苹果)">
+                        <input type="text" id="input-hanzi" required placeholder="Nhập chữ Hán vào đây..." lang="zh-CN">
                         <button type="button" onclick="autoFill()" style="padding: 10px 15px; background-color: #17a2b8; color: white; border: none; border-radius: 8px; cursor: pointer; white-space: nowrap; font-weight: bold;">
                             <i class="fas fa-magic"></i> Điền tự động
                         </button>
                     </div>
                 </div>
-
                 <div class="input-group">
                     <label>Phiên âm (Pinyin):</label>
                     <input type="text" id="input-pinyin" required placeholder="Sẽ tự động điền (VD: píngguǒ)">
@@ -52,17 +50,31 @@
                     </select>
                 </div>
                 <div class="input-group">
-                    <label>English Definition (Không bắt buộc):</label>
-                    <textarea id="input-en" placeholder="Nghĩa tiếng anh..."></textarea>
+                    <label>English Definition:</label>
+                    <textarea id="input-en" placeholder="Nghĩa tiếng Anh..." lang="en"></textarea>
                 </div>
                 <div class="input-group">
                     <label>Hướng dẫn/Nghĩa tiếng Việt:</label>
-                    <textarea id="input-vi" required placeholder="Nghĩa tiếng Việt sẽ tự động điền..."></textarea>
+                    <textarea id="input-vi" required placeholder="Nghĩa tiếng Việt sẽ tự động điền..." lang="vi"></textarea>
                 </div>
                 <button type="submit" class="btn-primary" style="width: 100%;">Lưu từ mới</button>
             </form>
+
+            <!-- GIAO DIỆN QUẢN LÝ JSON MỚI -->
+            <div class="form-container" style="margin-top: 25px; text-align: center; border: 2px dashed #ced4da;">
+                <h3 style="margin-bottom: 10px; color: #495057;">Quản lý Dữ liệu JSON</h3>
+                <p style="font-size: 14px; color: #6c757d; margin-bottom: 15px;">Dùng để sao lưu hoặc thêm hàng loạt từ vựng từ database bên ngoài.</p>
+                <div style="display: flex; justify-content: center; gap: 15px;">
+                    <button onclick="exportJSON()" class="btn-success" style="padding: 10px 20px;"><i class="fas fa-download"></i> Xuất JSON</button>
+                    <label class="btn-primary" style="padding: 10px 20px; cursor: pointer;">
+                        <i class="fas fa-upload"></i> Nhập JSON
+                        <input type="file" accept=".json" style="display: none;" onchange="importJSON(event)">
+                    </label>
+                </div>
+            </div>
         </section>
 
+        <!-- Tab Ôn tập -->
         <section id="tab-review" class="tab-content">
             <div id="review-container" class="review-card">
                 <div class="empty-state">Nhấn "Bắt đầu ôn tập" để kiểm tra từ vựng.</div>
@@ -91,6 +103,7 @@
             </div>
         </section>
 
+        <!-- Tab Đã ẩn -->
         <section id="tab-mastered" class="tab-content">
             <h3 style="margin-bottom: 20px; text-align: center;">Các từ không xuất hiện nữa (Đã thuộc)</h3>
             <div id="mastered-grid" class="grid-container"></div>
