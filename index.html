@@ -2,11 +2,27 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Chống tự động phóng to màn hình khi ấn vào ô nhập liệu trên điện thoại -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Học Từ Vựng Tiếng Trung</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/pinyin-pro"></script>
+    
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://unpkg.com/pinyin-pro"></script>
+    
+    <!-- Bổ sung CSS cho tính năng Tìm kiếm và Modal Sửa từ -->
+    <style>
+        .search-container { margin-bottom: 20px; }
+        .search-input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ced4da; font-size: 15px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+        .action-icon { color: #6c757d; border: none; background: none; cursor: pointer; font-size: 16px; padding: 5px; }
+        .action-icon:hover { color: #2c3e50; }
+        .action-icon.delete:hover { color: #ea4335; }
+        .action-icon.edit:hover { color: #17a2b8; }
+    </style>
 </head>
 <body>
     <header>
@@ -21,10 +37,13 @@
     <main>
         <!-- Tab Danh sách -->
         <section id="tab-list" class="tab-content active">
+            <div class="search-container">
+                <input type="text" id="search-list" class="search-input" oninput="filterList('list')" placeholder="🔍 Tìm kiếm chữ Hán, pinyin hoặc nghĩa...">
+            </div>
             <div id="flashcard-grid" class="grid-container"></div>
         </section>
 
-        <!-- Tab Thêm từ & Quản lý JSON -->
+        <!-- Tab Thêm từ -->
         <section id="tab-add" class="tab-content">
             <form id="add-word-form" class="form-container">
                 <h2>Thêm Từ Mới</h2>
@@ -39,7 +58,7 @@
                 </div>
                 <div class="input-group">
                     <label>Phiên âm (Pinyin):</label>
-                    <input type="text" id="input-pinyin" required placeholder="Sẽ tự động điền (VD: píngguǒ)">
+                    <input type="text" id="input-pinyin" required placeholder="Sẽ tự động điền">
                 </div>
                 <div class="input-group">
                     <label>Loại từ:</label>
@@ -51,19 +70,17 @@
                 </div>
                 <div class="input-group">
                     <label>English Definition:</label>
-                    <textarea id="input-en" placeholder="Nghĩa tiếng Anh..." lang="en"></textarea>
+                    <textarea id="input-en" placeholder="Nghĩa tiếng Anh tự động..." lang="en"></textarea>
                 </div>
                 <div class="input-group">
-                    <label>Hướng dẫn/Nghĩa tiếng Việt:</label>
-                    <textarea id="input-vi" required placeholder="Nghĩa tiếng Việt sẽ tự động điền..." lang="vi"></textarea>
+                    <label>Nghĩa tiếng Việt:</label>
+                    <textarea id="input-vi" required placeholder="Nghĩa tiếng Việt tự động..." lang="vi"></textarea>
                 </div>
                 <button type="submit" class="btn-primary" style="width: 100%;">Lưu từ mới</button>
             </form>
-
-            <!-- GIAO DIỆN QUẢN LÝ JSON MỚI -->
+            
             <div class="form-container" style="margin-top: 25px; text-align: center; border: 2px dashed #ced4da;">
                 <h3 style="margin-bottom: 10px; color: #495057;">Quản lý Dữ liệu JSON</h3>
-                <p style="font-size: 14px; color: #6c757d; margin-bottom: 15px;">Dùng để sao lưu hoặc thêm hàng loạt từ vựng từ database bên ngoài.</p>
                 <div style="display: flex; justify-content: center; gap: 15px;">
                     <button onclick="exportJSON()" class="btn-success" style="padding: 10px 20px;"><i class="fas fa-download"></i> Xuất JSON</button>
                     <label class="btn-primary" style="padding: 10px 20px; cursor: pointer;">
@@ -86,16 +103,16 @@
 
             <div id="srs-controls" class="srs-buttons" style="display: none;">
                 <button class="btn-srs btn-srs-1" onclick="updateSRS(1)">
-                    <span class="key-hint">Phím 1</span><span class="label">Lại</span><span class="time">5 phút</span>
+                    <span class="key-hint">Phím 1</span><span class="label">Lại</span><span class="time">30 phút</span>
                 </button>
                 <button class="btn-srs btn-srs-2" onclick="updateSRS(2)">
-                    <span class="key-hint">Phím 2</span><span class="label">Khó</span><span class="time">1 giờ</span>
+                    <span class="key-hint">Phím 2</span><span class="label">Khó</span><span class="time">1 ngày</span>
                 </button>
                 <button class="btn-srs btn-srs-3" onclick="updateSRS(3)">
-                    <span class="key-hint">Phím 3</span><span class="label">Tốt</span><span class="time">1 ngày</span>
+                    <span class="key-hint">Phím 3</span><span class="label">Tốt</span><span class="time">4 ngày</span>
                 </button>
                 <button class="btn-srs btn-srs-4" onclick="updateSRS(4)">
-                    <span class="key-hint">Phím 4</span><span class="label">Dễ</span><span class="time">5 ngày</span>
+                    <span class="key-hint">Phím 4</span><span class="label">Dễ</span><span class="time">6 ngày</span>
                 </button>
                 <button class="btn-srs btn-srs-5" onclick="updateSRS(5)">
                     <span class="key-hint">Phím 5</span><span class="label">Đã thuộc</span><span class="time">Ẩn luôn</span>
@@ -105,10 +122,40 @@
 
         <!-- Tab Đã ẩn -->
         <section id="tab-mastered" class="tab-content">
-            <h3 style="margin-bottom: 20px; text-align: center;">Các từ không xuất hiện nữa (Đã thuộc)</h3>
+            <div class="search-container">
+                <input type="text" id="search-mastered" class="search-input" oninput="filterList('mastered')" placeholder="🔍 Tìm kiếm chữ Hán, pinyin hoặc nghĩa...">
+            </div>
             <div id="mastered-grid" class="grid-container"></div>
         </section>
     </main>
+
+    <!-- Modal Sửa Từ -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content form-container">
+            <h3>Sửa Từ Vựng</h3>
+            <input type="hidden" id="edit-id">
+            <div class="input-group">
+                <label>Chữ Hán:</label>
+                <input type="text" id="edit-hanzi" required>
+            </div>
+            <div class="input-group">
+                <label>Pinyin:</label>
+                <input type="text" id="edit-pinyin" required>
+            </div>
+            <div class="input-group">
+                <label>English:</label>
+                <textarea id="edit-en"></textarea>
+            </div>
+            <div class="input-group">
+                <label>Tiếng Việt:</label>
+                <textarea id="edit-vi" required></textarea>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="saveEditWord()" class="btn-success" style="flex: 1;">Lưu thay đổi</button>
+                <button onclick="closeEditModal()" class="btn-danger" style="flex: 1;">Hủy</button>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
