@@ -323,3 +323,61 @@ header {
         font-size: 16px;
     }
 }
+
+/* ==========================================
+   TỐI ƯU GIAO DIỆN ĐIỆN THOẠI (CHỐNG TRÀN VIỀN)
+   LƯU Ý: ĐỂ ĐOẠN NÀY Ở DƯỚI CÙNG CỦA FILE
+   ========================================== */
+@media screen and (max-width: 768px) {
+    /* Khóa chết chiều ngang, không cho tràn viền */
+    body, html {
+        overflow-x: hidden !important;
+        width: 100vw !important;
+    }
+    
+    /* Tách Logo và thanh Menu thành 2 dòng */
+    header .nav-container {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        padding: 10px !important;
+        gap: 8px !important;
+    }
+    
+    .app-brand {
+        width: 100% !important;
+        justify-content: center !important;
+        margin-bottom: 10px !important;
+    }
+
+    /* Các nút menu sẽ dàn thành 3 nút/hàng, icon nằm trên chữ */
+    .nav-btn {
+        flex: 1 1 30% !important; 
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        font-size: 11px !important;
+        padding: 8px 4px !important;
+        gap: 4px !important;
+        white-space: normal !important;
+        text-align: center !important;
+    }
+    
+    /* Ép các thẻ từ vựng hiển thị 1 cột duy nhất */
+    .grid-container {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+        padding: 10px 0 !important;
+    }
+
+    /* Căn lại các khung nhập liệu và khung ôn tập */
+    .flashcard, .form-container, .review-card {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+    }
+    
+    main {
+        padding: 10px !important;
+    }
+}
