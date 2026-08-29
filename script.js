@@ -6,6 +6,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let vocabList = [];
+let audioRate = parseFloat(localStorage.getItem('audioRate')) || 0.8;
 
 async function fetchDatabase() {
     const { data, error } = await supabaseClient.from('vocab').select('*').order('id', { ascending: false });
@@ -43,6 +44,7 @@ async function importJSON(event) {
                 importedData.forEach(newWord => {
                     if (!vocabList.find(w => w.hanzi === newWord.hanzi)) {
                         newWord.id = Date.now() + count++;
+                        if(!newWord.type) newWord.type = "Noun";
                         if(newWord.isMastered === undefined) newWord.isMastered = false;
                         if(newWord.nextReview === undefined) newWord.nextReview = Date.now();
                         newDataToInsert.push(newWord);
@@ -65,7 +67,7 @@ async function importJSON(event) {
 }
 
 // ==========================================
-// 2. GIAO DIỆN & TÌM KIẾM
+// 2. GIAO DIỆN, CÀI ĐẶT & TÌM KIẾM
 // ==========================================
 function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -84,13 +86,51 @@ function switchTab(tabId) {
     }
 }
 
+function openSettingsModal() {
+    document.getElementById('speed-slider').value = audioRate;
+    document.getElementById('speed-display').innerText = audioRate + 'x';
+    document.getElementById('settings-modal').style.display = 'flex';
+}
+
+function closeSettingsModal() {
+    document.getElementById('settings-modal').style.display = 'none';
+}
+
+function saveSettings() {
+    audioRate = parseFloat(document.getElementById('speed-slider').value);
+    localStorage.setItem('audioRate', audioRate);
+    closeSettingsModal();
+    alert("Đã lưu cài đặt tốc độ thành công!");
+}
+
+function testAudioSettings() {
+    const tempRate = parseFloat(document.getElementById('speed-slider').value);
+    if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance("你好，我是你的中文助手"); 
+        utterance.lang = 'zh-CN'; 
+        utterance.rate = tempRate;     
+        const voices = window.speechSynthesis.getVoices();
+        const zhVoice = voices.find(v => v.lang === 'zh-CN' || v.lang.includes('zh'));
+        if (zhVoice) utterance.voice = zhVoice;
+        window.speechSynthesis.speak(utterance);
+    }
+}
+
 function playAudio(text) {
     if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'zh-CN'; 
-        utterance.rate = 0.9;     
+        utterance.rate = audioRate; 
+        
+        const voices = window.speechSynthesis.getVoices();
+        const zhVoice = voices.find(v => v.lang === 'zh-CN' || v.lang.includes('zh'));
+        if (zhVoice) utterance.voice = zhVoice;
+        
         window.speechSynthesis.speak(utterance);
     }
+}
+if ('speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
 }
 
 function filterList(type) {
@@ -107,7 +147,7 @@ function filterList(type) {
     );
 
     if (filtered.length === 0) {
-        grid.innerHTML = '<p style="text-align:center; width:100%; color:#6c757d;">Không tìm thấy kết quả.</p>';
+        grid.innerHTML = '<p style="text-align:center; width:100%; color:#6c757d; background:white; padding:20px; border-radius:12px;">Không tìm thấy kết quả.</p>';
         return;
     }
     filtered.forEach(word => grid.appendChild(createCardElement(word, type === 'mastered')));
@@ -119,6 +159,7 @@ function createCardElement(word, isMasteredView = false) {
     card.innerHTML = `
         <div class="flashcard-header">
             <span class="hanzi-text">${word.hanzi}</span>
+            <span class="word-type" style="background:#f1f3f5; padding:2px 8px; border-radius:8px; font-size:12px; color:#6c757d;">${word.type || 'Noun'}</span>
             <button class="btn-audio" onclick="playAudio('${word.hanzi}')"><i class="fas fa-volume-up"></i></button>
         </div>
         <div class="pinyin-text">Pinyin: ${word.pinyin}</div>
@@ -144,7 +185,7 @@ function createCardElement(word, isMasteredView = false) {
 }
 
 // ==========================================
-// 3. THÊM TỪ & SỬA TỪ (DỊCH SONG NGỮ)
+// 3. THÊM TỪ & SỬA TỪ
 // ==========================================
 async function autoFill() {
     const hanziInput = document.getElementById('input-hanzi').value.trim();
@@ -161,14 +202,24 @@ async function autoFill() {
         if (window.pinyinPro) {
             document.getElementById('input-pinyin').value = window.pinyinPro.pinyin(hanziInput);
         }
-        // Gọi API song song cho 2 ngôn ngữ
         const [resVi, resEn] = await Promise.all([
             fetch(`https://api.mymemory.translated.net/get?q=${hanziInput}&langpair=zh|vi`).then(r => r.json()).catch(()=>null),
             fetch(`https://api.mymemory.translated.net/get?q=${hanziInput}&langpair=zh|en`).then(r => r.json()).catch(()=>null)
         ]);
         
         if (resVi?.responseData?.translatedText) document.getElementById('input-vi').value = resVi.responseData.translatedText;
-        if (resEn?.responseData?.translatedText) document.getElementById('input-en').value = resEn.responseData.translatedText;
+        
+        // Thuật toán đoán Từ loại dựa trên nghĩa Tiếng Anh
+        if (resEn?.responseData?.translatedText) {
+            const enText = resEn.responseData.translatedText;
+            document.getElementById('input-en').value = enText;
+            
+            let detectedType = "Noun (Danh từ)";
+            if (enText.toLowerCase().startsWith("to ")) detectedType = "Verb (Động từ)";
+            else if (enText.toLowerCase().endsWith("ly")) detectedType = "Adv (Trạng từ)";
+            
+            document.getElementById('input-type').value = detectedType;
+        }
     } catch (error) {
         alert("Lỗi mạng khi dịch.");
     } finally {
@@ -183,7 +234,7 @@ document.getElementById('add-word-form').addEventListener('submit', async functi
         id: Date.now(),
         hanzi: document.getElementById('input-hanzi').value.trim(),
         pinyin: document.getElementById('input-pinyin').value.trim(),
-        type: document.getElementById('input-type').value,
+        type: document.getElementById('input-type').value.trim() || 'Noun',
         enDef: document.getElementById('input-en').value.trim(),
         viDef: document.getElementById('input-vi').value.trim(),
         isMastered: false, 
@@ -193,7 +244,6 @@ document.getElementById('add-word-form').addEventListener('submit', async functi
     vocabList.unshift(newWord); 
     this.reset(); 
     
-    // Phát âm ngay sau khi thêm
     playAudio(newWord.hanzi);
     alert('Thêm từ thành công!');
 
@@ -201,13 +251,13 @@ document.getElementById('add-word-form').addEventListener('submit', async functi
     if (error) console.error("Lỗi:", error);
 });
 
-// Chức năng Modal Sửa Từ
 function openEditModal(id) {
     const word = vocabList.find(w => w.id === id);
     if(!word) return;
     document.getElementById('edit-id').value = word.id;
     document.getElementById('edit-hanzi').value = word.hanzi;
     document.getElementById('edit-pinyin').value = word.pinyin;
+    document.getElementById('edit-type').value = word.type || "";
     document.getElementById('edit-en').value = word.enDef || "";
     document.getElementById('edit-vi').value = word.viDef || "";
     document.getElementById('edit-modal').style.display = 'flex';
@@ -224,21 +274,22 @@ async function saveEditWord() {
 
     vocabList[index].hanzi = document.getElementById('edit-hanzi').value.trim();
     vocabList[index].pinyin = document.getElementById('edit-pinyin').value.trim();
+    vocabList[index].type = document.getElementById('edit-type').value.trim();
     vocabList[index].enDef = document.getElementById('edit-en').value.trim();
     vocabList[index].viDef = document.getElementById('edit-vi').value.trim();
 
     closeEditModal();
-    filterList('list'); // Re-render
+    filterList('list'); 
 
     await supabaseClient.from('vocab').update({ 
         hanzi: vocabList[index].hanzi,
         pinyin: vocabList[index].pinyin,
+        type: vocabList[index].type,
         "enDef": vocabList[index].enDef,
         "viDef": vocabList[index].viDef
     }).eq('id', id);
 }
 
-// Xóa và khôi phục
 async function restoreWord(id) {
     const index = vocabList.findIndex(w => w.id === id);
     if(index !== -1) {
@@ -271,7 +322,7 @@ function startReview() {
     const reviewContainer = document.getElementById('review-container');
 
     if (dueWords.length === 0) {
-        reviewContainer.innerHTML = `<h3 style="color:#34a853; text-align:center;">Tuyệt vời! Bạn đã hoàn thành các từ cần ôn lúc này.</h3>`;
+        reviewContainer.innerHTML = `<h3 style="color:#34a853; text-align:center; background:white; padding:20px; border-radius:12px;">Tuyệt vời! Bạn đã hoàn thành các từ cần ôn lúc này.</h3>`;
         document.getElementById('default-controls').style.display = 'none';
         return;
     }
@@ -282,7 +333,9 @@ function startReview() {
     hintRevealed = 0; 
     
     let displayQuestion = currentQuizWord.enDef ? currentQuizWord.enDef : "<i>(Chưa có nghĩa tiếng Anh)</i>";
+    let displayType = currentQuizWord.type ? `<span class="pos-badge">${currentQuizWord.type}</span>` : '';
 
+    // Cập nhật giao diện: Hiển thị thêm Từ loại (Part of speech) bên cạnh English Definition
     reviewContainer.innerHTML = `
         <div style="text-align: right; color: #868e96; font-size: 15px; font-weight: bold; margin-bottom: 10px; background: #f8f9fa; padding: 5px 10px; border-radius: 8px; display: inline-block; float: right;">
             <i class="fas fa-layer-group"></i> Còn lại: <span style="color: #ea4335; font-size: 18px;">${dueWords.length}</span> từ
@@ -292,6 +345,7 @@ function startReview() {
         <h3 id="quiz-title" style="margin-bottom: 20px;">
             <span style="display: block; color: #868e96; font-size: 16px; margin-bottom: 5px; font-weight: normal;">English Definition:</span>
             <span style="color: #4285f4; font-size: 28px;">${displayQuestion}</span>
+            ${displayType}
         </h3>
         
         <div style="text-align: center; margin-bottom: 15px;">
@@ -313,7 +367,6 @@ function startReview() {
 
 function showHint() {
     if (!currentQuizWord) return;
-    // Chặn gọi Hint nếu phần nút action (Kiểm tra) đã bị ẩn -> Tránh chèn lên kết quả và tắt tiếng
     if (document.getElementById('action-buttons').style.display === 'none') return;
     
     hintRevealed++;
@@ -324,7 +377,14 @@ function showHint() {
     const hiddenText = '*'.repeat(pinyin.length - hintRevealed);
     
     const feedback = document.getElementById('quiz-feedback');
-    feedback.innerHTML = `<span style="color: #f29900;">Gợi ý Pinyin: <strong style="letter-spacing: 3px;">${revealedText}${hiddenText}</strong></span>`;
+    feedback.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; color: #f29900;">
+            <span>Gợi ý Pinyin: <strong style="letter-spacing: 3px;">${revealedText}${hiddenText}</strong></span>
+            <button type="button" onclick="playAudio('${currentQuizWord.hanzi}')" tabindex="-1" style="background: #e9ecef; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; color: #495057; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+                <i class="fas fa-volume-up" style="font-size: 12px;"></i>
+            </button>
+        </div>
+    `;
     feedback.className = 'feedback-msg'; 
     
     const inputField = document.getElementById('quiz-input');
@@ -394,11 +454,16 @@ async function updateSRS(level) {
     if (!currentQuizWord) return;
     const now = Date.now();
     
-    // Áp dụng mốc thời gian mới: 30p, 1 ngày, 4 ngày, 6 ngày
+    const getRandomTime = (minDays, maxDays) => {
+        const minMs = minDays * 24 * 60 * 60 * 1000;
+        const maxMs = maxDays * 24 * 60 * 60 * 1000;
+        return Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
+    };
+    
     if (level === 1) currentQuizWord.nextReview = now + 30 * 60 * 1000; 
-    else if (level === 2) currentQuizWord.nextReview = now + 24 * 60 * 60 * 1000; 
-    else if (level === 3) currentQuizWord.nextReview = now + 4 * 24 * 60 * 60 * 1000; 
-    else if (level === 4) currentQuizWord.nextReview = now + 6 * 24 * 60 * 60 * 1000; 
+    else if (level === 2) currentQuizWord.nextReview = now + getRandomTime(1, 2); 
+    else if (level === 3) currentQuizWord.nextReview = now + getRandomTime(3, 5); 
+    else if (level === 4) currentQuizWord.nextReview = now + getRandomTime(5, 7); 
     else if (level === 5) currentQuizWord.isMastered = true; 
 
     const index = vocabList.findIndex(w => w.id === currentQuizWord.id);
