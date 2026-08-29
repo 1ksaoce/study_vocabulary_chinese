@@ -247,137 +247,64 @@ header {
 .btn-restore:hover { background-color: #7b1fa2; }
 
 /* ==========================================
-   TỐI ƯU GIAO DIỆN DI ĐỘNG (MOBILE RESPONSIVE)
+   TỐI ƯU GIAO DIỆN ĐIỆN THOẠI (CHỐNG TRÀN VIỀN & MENU CHUẨN APP)
    ========================================== */
 @media screen and (max-width: 768px) {
-    /* 1. Xử lý Header: Ép Logo và Menu rớt dòng, căn giữa */
-    header .nav-container {
-        flex-direction: column !important;
-        padding: 10px !important;
-        gap: 10px;
-    }
-
-    .app-brand {
-        width: 100%;
-        justify-content: center;
-        margin-right: 0 !important;
-        margin-bottom: 5px;
-    }
-
-    /* 2. Menu ngang: Chuyển icon lên trên chữ, chia đều không gian */
-    header .nav-container button {
-        flex: 1;
-        font-size: 11px;
-        padding: 8px 4px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 5px;
-        word-break: break-word;
-    }
-
-    /* 3. Ngăn chặn tràn viền khung Main */
-    body {
-        overflow-x: hidden;
-    }
-    
-    main {
-        padding: 10px !important;
-        width: 100vw;
-        box-sizing: border-box;
-    }
-
-    /* 4. Ép các Card và Form co lại 100% chiều ngang điện thoại */
-    .review-card, .form-container, .flashcard, #review-container {
-        width: 100% !important;
-        max-width: 100% !important;
-        margin: 0 auto !important;
-        box-sizing: border-box;
-        padding: 15px !important;
-    }
-
-    /* 5. Xử lý phần chữ tiếng Anh bị tràn khung */
-    #quiz-title {
-        word-wrap: break-word;
-        font-size: 22px !important; 
-    }
-
-    /* 6. Nút "Bắt đầu ôn tập" & Nút "Kiểm tra/Không nhớ" dãn đều 100% */
-    #default-controls, .review-controls {
-        display: flex;
-        justify-content: center;
-        width: 100%;
-        margin-top: 15px;
-    }
-    
-    .review-actions {
-        display: flex;
-        flex-direction: column; /* Trải dọc nút để dễ bấm bằng ngón tay */
-        width: 100%;
-        gap: 10px;
-    }
-
-    .review-actions button {
-        width: 100% !important;
-        padding: 12px !important;
-        font-size: 16px;
-    }
-}
-
-/* ==========================================
-   TỐI ƯU GIAO DIỆN ĐIỆN THOẠI (CHỐNG TRÀN VIỀN)
-   LƯU Ý: ĐỂ ĐOẠN NÀY Ở DƯỚI CÙNG CỦA FILE
-   ========================================== */
-@media screen and (max-width: 768px) {
-    /* Khóa chết chiều ngang, không cho tràn viền */
     body, html {
         overflow-x: hidden !important;
         width: 100vw !important;
     }
     
-    /* Tách Logo và thanh Menu thành 2 dòng */
+    /* Ép container nằm ngang và cho phép rớt dòng */
     header .nav-container {
         display: flex !important;
-        flex-wrap: wrap !important;
-        padding: 10px !important;
-        gap: 8px !important;
+        flex-direction: row !important; 
+        flex-wrap: wrap !important; 
+        justify-content: space-between !important;
+        padding: 15px 15px 5px 15px !important;
+        gap: 10px !important;
     }
     
+    /* Logo chiếm 100% hàng đầu tiên */
     .app-brand {
         width: 100% !important;
         justify-content: center !important;
-        margin-bottom: 10px !important;
+        margin-bottom: 12px !important;
     }
 
-    /* Các nút menu sẽ dàn thành 3 nút/hàng, icon nằm trên chữ */
+    /* Các nút tự động chia đều, giãn to và lấp đầy khoảng trống */
     .nav-btn {
-        flex: 1 1 30% !important; 
+        flex: 1 1 calc(20% - 10px) !important; 
+        min-width: 65px !important; /* Đảm bảo nút không bị ép quá nhỏ */
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
-        font-size: 11px !important;
-        padding: 8px 4px !important;
-        gap: 4px !important;
-        white-space: normal !important;
+        justify-content: center !important;
+        font-size: 12px !important;
+        padding: 12px 5px !important;
+        border-radius: 14px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+        gap: 6px !important;
         text-align: center !important;
+        white-space: nowrap !important;
     }
     
-    /* Ép các thẻ từ vựng hiển thị 1 cột duy nhất */
+    /* Ép các thẻ từ vựng hiển thị 1 cột, padding lớn hơn để dễ nhìn */
     .grid-container {
         grid-template-columns: 1fr !important;
-        gap: 10px !important;
+        gap: 12px !important;
         padding: 10px 0 !important;
     }
 
-    /* Căn lại các khung nhập liệu và khung ôn tập */
     .flashcard, .form-container, .review-card {
         width: 100% !important;
         max-width: 100% !important;
         box-sizing: border-box !important;
         margin: 0 !important;
+        padding: 20px !important; 
     }
     
     main {
-        padding: 10px !important;
+        padding: 10px 15px !important;
     }
 }
