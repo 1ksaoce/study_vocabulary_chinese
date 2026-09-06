@@ -4,19 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
-    <!-- CẤU HÌNH ICON VÀ TÊN APP CHO IPHONE (BẮT BUỘC) -->
     <meta name="apple-mobile-web-app-title" content="YLAG Chinese">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <link rel="apple-touch-icon" href="image.png">
     <link rel="icon" type="image/png" href="image.png">
-    
-    <title>YLAG Chinese</title>
-    
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://unpkg.com/pinyin-pro"></script>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <title>YLAG Chinese - Học Từ Vựng</title>
     
@@ -27,66 +19,24 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        body {
-            background-color: #f4f6f8;
-            min-height: 100vh;
-        }
-        
-        /* CSS Logo App & Avatar */
-        .app-brand {
-            font-size: 22px;
-            font-weight: 900;
-            color: #2b3a55;
-            margin-right: auto;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            letter-spacing: 1px;
-        }
-
-        .app-avatar {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid #fff;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-        }
-
-        header .nav-container {
-            display: flex;
-            align-items: center;
-            width: 100%;
-            max-width: 1000px;
-            padding: 0 20px;
-        }
-
+        body { background-color: #f4f6f8; min-height: 100vh; }
+        .app-brand { font-size: 22px; font-weight: 900; color: #2b3a55; margin-right: auto; display: flex; align-items: center; gap: 12px; letter-spacing: 1px; }
+        .app-avatar { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+        header .nav-container { display: flex; align-items: center; width: 100%; max-width: 1000px; padding: 0 20px; }
         .search-container { margin-bottom: 20px; }
         .search-input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ced4da; font-size: 15px; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; padding: 10px; }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         .action-icon { color: #6c757d; border: none; background: none; cursor: pointer; font-size: 16px; padding: 5px; }
         .action-icon:hover { color: #2c3e50; }
         .action-icon.delete:hover { color: #ea4335; }
         .action-icon.edit:hover { color: #17a2b8; }
-        
-        .pos-badge {
-            background-color: #e9ecef;
-            color: #495057;
-            font-size: 13px;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-weight: bold;
-            vertical-align: middle;
-            margin-left: 10px;
-        }
     </style>
 </head>
 <body>
     <header style="display: flex; justify-content: center;">
         <div class="nav-container">
             <div class="app-brand">
-                <!-- Chèn Avatar cá nhân ở đây -->
                 <img src="image.png" alt="Avatar" class="app-avatar">
                 YLAG CHINESE
             </div>
@@ -124,7 +74,7 @@
                 </div>
                 
                 <div class="input-group">
-                    <label>Từ loại (Part of Speech):</label>
+                    <label>Từ loại:</label>
                     <input type="text" id="input-type" list="pos-options" required placeholder="Danh từ, Động từ, Tính từ...">
                     <datalist id="pos-options">
                         <option value="Noun (Danh từ)">
@@ -138,12 +88,24 @@
 
                 <div class="input-group">
                     <label>English Definition:</label>
-                    <textarea id="input-en" placeholder="Nghĩa tiếng Anh tự động..." lang="en"></textarea>
+                    <textarea id="input-en" placeholder="Nghĩa tiếng Anh..." lang="en"></textarea>
                 </div>
                 <div class="input-group">
                     <label>Nghĩa tiếng Việt:</label>
-                    <textarea id="input-vi" required placeholder="Nghĩa tiếng Việt tự động..." lang="vi"></textarea>
+                    <textarea id="input-vi" required placeholder="Nghĩa tiếng Việt..." lang="vi"></textarea>
                 </div>
+                
+                <!-- TÁCH 2 Ô VÍ DỤ RIÊNG BIỆT -->
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #dee2e6;">
+                    <label style="font-weight: bold; color: #495057; display: block; margin-bottom: 10px;">📖 Câu ví dụ (Tùy chọn):</label>
+                    <div class="input-group">
+                        <input type="text" id="input-example-zh" placeholder="Câu tiếng Trung..." lang="zh-CN">
+                    </div>
+                    <div class="input-group" style="margin-bottom: 0;">
+                        <input type="text" id="input-example-en" placeholder="Nghĩa của câu (EN/VI)...">
+                    </div>
+                </div>
+
                 <button type="submit" class="btn-primary" style="width: 100%;">Lưu từ mới</button>
             </form>
             
@@ -163,11 +125,9 @@
             <div id="review-container" class="review-card">
                 <div class="empty-state">Nhấn "Bắt đầu ôn tập" để kiểm tra từ vựng.</div>
             </div>
-            
             <div id="default-controls" class="review-controls">
                 <button onclick="startReview()" class="btn-primary">Bắt đầu ôn tập</button>
             </div>
-
             <div id="srs-controls" class="srs-buttons" style="display: none;">
                 <button class="btn-srs btn-srs-1" onclick="updateSRS(1)">
                     <span class="key-hint">Phím 1</span><span class="label">Lại</span><span class="time">30 phút</span>
@@ -220,6 +180,18 @@
                 <label>Tiếng Việt:</label>
                 <textarea id="edit-vi" required></textarea>
             </div>
+            
+            <!-- TÁCH Ô SỬA VÍ DỤ -->
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                <label style="font-weight: bold; color: #495057; display: block; margin-bottom: 10px;">📖 Câu ví dụ:</label>
+                <div class="input-group">
+                    <input type="text" id="edit-example-zh" placeholder="Câu tiếng Trung...">
+                </div>
+                <div class="input-group" style="margin-bottom: 0;">
+                    <input type="text" id="edit-example-en" placeholder="Nghĩa của câu...">
+                </div>
+            </div>
+
             <div style="display: flex; gap: 10px; margin-top: 20px;">
                 <button onclick="saveEditWord()" class="btn-success" style="flex: 1;">Lưu</button>
                 <button onclick="closeEditModal()" class="btn-danger" style="flex: 1;">Hủy</button>
