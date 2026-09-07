@@ -611,7 +611,7 @@ function startReview() {
     hintRevealed = 0; 
     
     let displayQuestion = currentQuizWord.enDef ? currentQuizWord.enDef : "<i>(Chưa có nghĩa tiếng Anh)</i>";
-    let displayType = currentQuizWord.type ? `<span class="pos-badge">${currentQuizWord.type}</span>` : '';
+    let displayType = currentQuizWord.type ? `<span style="display: block; font-size: 14px; color: #6c757d; background: #f1f3f5; padding: 4px 12px; border-radius: 8px; width: fit-content; margin: 10px auto 0 auto; line-height: 1.4; font-weight: 500;">${currentQuizWord.type}</span>` : '';
 
     reviewContainer.innerHTML = `
         <div style="text-align: right; color: #868e96; font-size: 15px; font-weight: bold; margin-bottom: 10px; background: #f8f9fa; padding: 5px 10px; border-radius: 8px; display: inline-block; float: right;">
