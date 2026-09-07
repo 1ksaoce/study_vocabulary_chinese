@@ -323,11 +323,19 @@ function flattenTranslations(translations) {
 function pickEnglishTranslation(sentence) {
     const translations = flattenTranslations(sentence?.translations);
 
-    const english = translations.find(t =>
-        ['eng', 'en'].includes(String(t.lang || t.language || '').toLowerCase()) && t.text
-    );
+    const english = translations.find(t => {
+        const lang = String(t.lang || t.language || '').toLowerCase();
 
-    return english?.text || translations.find(t => t.text)?.text || '';
+        return (
+            (lang === 'eng' || lang === 'en') &&
+            t.text &&
+            t.text.trim()
+        );
+    });
+
+    // Không được lấy translation của ngôn ngữ khác
+    // nếu không tìm thấy tiếng Anh.
+    return english ? english.text.trim() : '';
 }
 
 // Chuẩn hóa kết quả Tatoeba v1/v0 để không phụ thuộc duy nhất một schema.
@@ -391,6 +399,37 @@ async function getTatoebaExample(hanzi) {
 }
 
 async function translateText(text, targetLang) {
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+    
+    // Áp dụng mảng proxy để vượt rào CORS và chặn IP từ Google
+    const proxies = [
+        '', // Ưu tiên gọi trực tiếp trước (nhanh nhất nếu không bị chặn)
+        'https://api.allorigins.win/raw?url=',
+        'https://api.codetabs.com/v1/proxy?quest='
+    ];
+
+    // 1. Quét qua từng phương thức gọi Google Translate
+    for (const proxy of proxies) {
+        try {
+            const fetchUrl = proxy ? proxy + encodeURIComponent(url) : url;
+            const res = await fetchWithTimeout(fetchUrl, { timeout: 4000 });
+            
+            if (res && res[0]) {
+                let translated = res[0].map(item => item[0]).join('');
+                if (translated.startsWith('"') && translated.endsWith('"')) {
+                    translated = translated.slice(1, -1);
+                }
+                // Thoát và trả về ngay nếu Google dịch thành công
+                return translated;
+            }
+        } catch (error) {
+            console.warn(`[Translate] Google GTX thất bại qua ${proxy || 'Direct'}, thử luồng khác...`);
+            // Tiếp tục vòng lặp để thử proxy tiếp theo
+        }
+    }
+
+    // 2. Dự phòng cuối cùng: Chỉ gọi MyMemory khi Google "tạch" toàn bộ
+    console.warn('[Translate] Dùng MyMemory làm dự phòng cuối cùng...');
     const data = await fetchMyMemoryData(text, targetLang);
     return data?.responseData?.translatedText || '';
 }
@@ -406,6 +445,27 @@ async function fetchMyMemoryData(text, targetLang) {
 // tận dụng luôn dữ liệu "matches" mà MyMemory trả về lúc dịch nghĩa tiếng Anh (không tốn thêm request).
 // MyMemory tổng hợp nhiều kho ngữ liệu song ngữ (bao gồm cả Tatoeba), nên "matches" thường
 // có sẵn vài câu ví dụ đầy đủ chứa từ/cụm từ vừa tra.
+// ==========================================
+// CHUYỂN MỌI CÂU TIẾNG TRUNG VỀ GIẢN THỂ
+// ==========================================
+
+function toSimplifiedChinese(text) {
+    if (!text) return '';
+
+    try {
+        // OpenCC: Traditional -> Simplified
+        if (typeof OpenCC !== 'undefined') {
+            const converter = OpenCC.Converter({ from: 'tw', to: 'cn' });
+            return converter(text);
+        }
+    } catch (error) {
+        console.warn('Không thể chuyển Phồn thể -> Giản thể:', error);
+    }
+
+    // Nếu OpenCC chưa load thì giữ nguyên
+    return text;
+}
+
 function pickExampleFromMyMemoryMatches(hanziInput, myMemoryData) {
     const matches = myMemoryData?.matches;
     if (!Array.isArray(matches)) return null;
@@ -423,22 +483,20 @@ function pickExampleFromMyMemoryMatches(hanziInput, myMemoryData) {
     return { zh: candidates[0].segment.trim(), en: candidates[0].translation.trim() };
 }
 
-// Hàm ép kiểu: Tẩy rửa câu ví dụ, biến mọi chữ Phồn thể thành Giản thể
-async function forceSimplified(text) {
-    if (!text) return text;
-    try {
-        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-CN&dt=t&q=${encodeURIComponent(text)}`;
-        const response = await fetchWithTimeout(url, { timeout: 3000 });
-        // Cấu trúc trả về của Google: [[[ "离开草坪！", "離開草坪!", ...]]]
-        if (response && response[0]) {
-            return response[0].map(s => s[0]).join('');
-        }
-    } catch (e) {
-        console.warn("Lỗi ép giản thể, dùng text gốc:", e);
-    }
-    return text;
+// Kiểm tra bản dịch trả về có thực sự dùng được không.
+// Bug gốc: khi MyMemory không dịch được, nó hay trả nguyên văn chữ Hán
+// (hoặc một câu cảnh báo kiểu "MYMEMORY WARNING...") thay vì báo lỗi rõ ràng.
+// Code cũ nhận bất cứ gì API trả về rồi nhét thẳng vào ô "English Definition" /
+// "Nghĩa tiếng Việt", khiến vài từ bị "spawn" ra chữ Hán/rác thay vì nghĩa thật.
+function isUsableTranslation(original, translated) {
+    if (!translated) return false;
+    const t = translated.trim();
+    if (!t) return false;
+    if (t.toUpperCase().includes('MYMEMORY WARNING')) return false; // API báo lỗi/hết quota
+    if (t === original.trim()) return false; // dịch y hệt bản gốc -> không phải bản dịch thật
+    if (/[\u4e00-\u9fff]/.test(t)) return false; // vẫn còn chữ Hán -> chưa dịch được
+    return true;
 }
-
 
 async function autoFill() {
     const hanziInput = document.getElementById('input-hanzi').value.trim();
@@ -463,51 +521,64 @@ async function autoFill() {
         }
 
         // Dịch nghĩa + tìm ví dụ chạy song song. allSettled giúp một luồng lỗi
-        // không làm hỏng những luồng còn lại.
-        const [viResult, enDataResult, exampleResult] = await Promise.allSettled([
-            translateText(hanziInput, 'vi'),
-            fetchMyMemoryData(hanziInput, 'en'),
-            getTatoebaExample(hanziInput)
+        // không làm hỏng những luồng còn lại.// Dịch nghĩa + tìm ví dụ chạy song song.
+        const [viResult, enResult, enDataResult, exampleResult] = await Promise.allSettled([
+        translateText(hanziInput, 'vi'),           // Gọi dịch tiếng Việt
+        translateText(hanziInput, 'en'),           // Gọi dịch tiếng Anh (Khắc phục lỗi bypass gốc)
+        fetchMyMemoryData(hanziInput, 'en'),       // Vẫn gọi MyMemory để lấy list 'matches' dự phòng cho câu ví dụ
+        getTatoebaExample(hanziInput)
         ]);
 
-        const viText = viResult.status === 'fulfilled' ? viResult.value : '';
+        const viTextRaw = viResult.status === 'fulfilled' ? viResult.value : '';
+        const enTextRaw = enResult.status === 'fulfilled' ? enResult.value : ''; // Lấy nghĩa chuẩn từ Google
         const enData = enDataResult.status === 'fulfilled' ? enDataResult.value : null;
-        const enText = enData?.responseData?.translatedText || '';
         let example = exampleResult.status === 'fulfilled' ? exampleResult.value : null;
+
+        // Chỉ chấp nhận bản dịch nếu hợp lệ, tránh nhét chữ Hán/rác vào form.
+        const viText = isUsableTranslation(hanziInput, viTextRaw) ? viTextRaw : '';
+        const enText = isUsableTranslation(hanziInput, enTextRaw) ? enTextRaw : '';
+        if (viTextRaw && !viText) console.warn('[AutoFill] Bỏ qua bản dịch VI không hợp lệ:', viTextRaw);
+        if (enTextRaw && !enText) console.warn('[AutoFill] Bỏ qua bản dịch EN không hợp lệ:', enTextRaw);
 
         if (viText) document.getElementById('input-vi').value = viText;
 
-                if (enText && enText !== hanziInput) {
-            // Regex chặn nhiễu: Nếu có chữ Hán trong kết quả dịch EN -> Bỏ qua
-            const hasChinese = /[\u4e00-\u9fa5]/.test(enText);
-            if (!hasChinese) {
-                document.getElementById('input-en').value = enText;
+        if (enText) {
+            document.getElementById('input-en').value = enText;
 
-                let detectedType = 'Noun (Danh từ)';
-                const lower = enText.toLowerCase().trim();
-                if (lower.startsWith('to ')) detectedType = 'Verb (Động từ)';
-                else if (lower.endsWith('ly')) detectedType = 'Adv (Trạng từ)';
-                document.getElementById('input-type').value = detectedType;
-            }
+            let detectedType = 'Noun (Danh từ)';
+            const lower = enText.toLowerCase().trim();
+            if (lower.startsWith('to ')) detectedType = 'Verb (Động từ)';
+            else if (lower.endsWith('ly')) detectedType = 'Adv (Trạng từ)';
+            document.getElementById('input-type').value = detectedType;
         }
 
-        // ... (Giữ nguyên logic tìm example dự phòng từ MyMemory)
-
+        // Nếu Tatoeba (cả v1 lẫn v0, cả gọi thẳng lẫn qua proxy) không có kết quả,
+        // thử dự phòng bằng dữ liệu "matches" sẵn có từ MyMemory trước khi bỏ cuộc.
+        if (!example?.zh) {
+            example = pickExampleFromMyMemoryMatches(hanziInput, enData);
+            if (example?.zh) console.info('[AutoFill] Dùng ví dụ dự phòng từ MyMemory:', example.zh);
+        }
         if (example?.zh) {
-            // Ép toàn bộ câu tiếng Trung sang Giản thể chuẩn trước khi hiển thị
-            const simplifiedZh = await forceSimplified(example.zh);
+
+            // Luôn chuyển câu ví dụ về tiếng Trung GIẢN THỂ
+            const simplifiedZh = toSimplifiedChinese(example.zh);
+
             document.getElementById('input-example-zh').value = simplifiedZh;
 
-            // Nếu ví dụ tìm được thiếu bản dịch EN, dịch chính câu đó bằng MyMemory.
+            // Chỉ chấp nhận English thật sự
             let exampleEn = example.en || '';
-            if (!exampleEn) {
-                exampleEn = await translateText(simplifiedZh, 'en'); 
-            }
-            document.getElementById('input-example-en').value = exampleEn;
-        } else {
-            console.warn('Không tìm thấy câu ví dụ nào cho:', hanziInput);
-        }
 
+            // Nếu Tatoeba không có English -> dịch chính câu tiếng Trung
+            if (!exampleEn) {
+                const translatedExampleEn = await translateText(simplifiedZh, 'en');
+                exampleEn = isUsableTranslation(simplifiedZh, translatedExampleEn) ? translatedExampleEn : '';
+            }
+
+            document.getElementById('input-example-en').value =
+            exampleEn ? exampleEn.trim() : '';
+        } else {
+            console.warn('Không tìm thấy câu ví dụ nào (Tatoeba lẫn MyMemory) cho:', hanziInput);
+        }
 
     } catch (error) {
         console.error('AutoFill error:', error);
@@ -630,7 +701,7 @@ function startReview() {
     hintRevealed = 0; 
     
     let displayQuestion = currentQuizWord.enDef ? currentQuizWord.enDef : "<i>(Chưa có nghĩa tiếng Anh)</i>";
-    let displayType = currentQuizWord.type ? `<span style="display: block; font-size: 14px; color: #6c757d; background: #f1f3f5; padding: 4px 12px; border-radius: 8px; width: fit-content; margin: 10px auto 0 auto; line-height: 1.4; font-weight: 500;">${currentQuizWord.type}</span>` : '';
+    let displayType = currentQuizWord.type ? `<span style="display: block; font-size: 14px; color: #030c13; background: #f1f3f5; padding: 4px 12px; border-radius: 8px; width: fit-content; margin: 10px auto 0 auto; line-height: 1.4; font-weight: 500;">${currentQuizWord.type}</span>` : '';
 
     reviewContainer.innerHTML = `
         <div style="text-align: right; color: #868e96; font-size: 15px; font-weight: bold; margin-bottom: 10px; background: #f8f9fa; padding: 5px 10px; border-radius: 8px; display: inline-block; float: right;">
