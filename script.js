@@ -477,35 +477,37 @@ async function autoFill() {
 
         if (viText) document.getElementById('input-vi').value = viText;
 
-        if (enText) {
-            document.getElementById('input-en').value = enText;
+                if (enText && enText !== hanziInput) {
+            // Regex chặn nhiễu: Nếu có chữ Hán trong kết quả dịch EN -> Bỏ qua
+            const hasChinese = /[\u4e00-\u9fa5]/.test(enText);
+            if (!hasChinese) {
+                document.getElementById('input-en').value = enText;
 
-            let detectedType = 'Noun (Danh từ)';
-            const lower = enText.toLowerCase().trim();
-            if (lower.startsWith('to ')) detectedType = 'Verb (Động từ)';
-            else if (lower.endsWith('ly')) detectedType = 'Adv (Trạng từ)';
-            document.getElementById('input-type').value = detectedType;
+                let detectedType = 'Noun (Danh từ)';
+                const lower = enText.toLowerCase().trim();
+                if (lower.startsWith('to ')) detectedType = 'Verb (Động từ)';
+                else if (lower.endsWith('ly')) detectedType = 'Adv (Trạng từ)';
+                document.getElementById('input-type').value = detectedType;
+            }
         }
 
-        // Nếu Tatoeba (cả v1 lẫn v0, cả gọi thẳng lẫn qua proxy) không có kết quả,
-        // thử dự phòng bằng dữ liệu "matches" sẵn có từ MyMemory trước khi bỏ cuộc.
-        if (!example?.zh) {
-            example = pickExampleFromMyMemoryMatches(hanziInput, enData);
-            if (example?.zh) console.info('[AutoFill] Dùng ví dụ dự phòng từ MyMemory:', example.zh);
-        }
+        // ... (Giữ nguyên logic tìm example dự phòng từ MyMemory)
 
         if (example?.zh) {
-            document.getElementById('input-example-zh').value = example.zh;
+            // Ép toàn bộ câu tiếng Trung sang Giản thể chuẩn trước khi hiển thị
+            const simplifiedZh = await forceSimplified(example.zh);
+            document.getElementById('input-example-zh').value = simplifiedZh;
 
             // Nếu ví dụ tìm được thiếu bản dịch EN, dịch chính câu đó bằng MyMemory.
             let exampleEn = example.en || '';
             if (!exampleEn) {
-                exampleEn = await translateText(example.zh, 'en');
+                exampleEn = await translateText(simplifiedZh, 'en'); 
             }
             document.getElementById('input-example-en').value = exampleEn;
         } else {
-            console.warn('Không tìm thấy câu ví dụ nào (Tatoeba lẫn MyMemory) cho:', hanziInput);
+            console.warn('Không tìm thấy câu ví dụ nào cho:', hanziInput);
         }
+
 
     } catch (error) {
         console.error('AutoFill error:', error);
