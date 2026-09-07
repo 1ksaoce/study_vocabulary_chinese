@@ -423,6 +423,23 @@ function pickExampleFromMyMemoryMatches(hanziInput, myMemoryData) {
     return { zh: candidates[0].segment.trim(), en: candidates[0].translation.trim() };
 }
 
+// Hàm ép kiểu: Tẩy rửa câu ví dụ, biến mọi chữ Phồn thể thành Giản thể
+async function forceSimplified(text) {
+    if (!text) return text;
+    try {
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-CN&dt=t&q=${encodeURIComponent(text)}`;
+        const response = await fetchWithTimeout(url, { timeout: 3000 });
+        // Cấu trúc trả về của Google: [[[ "离开草坪！", "離開草坪!", ...]]]
+        if (response && response[0]) {
+            return response[0].map(s => s[0]).join('');
+        }
+    } catch (e) {
+        console.warn("Lỗi ép giản thể, dùng text gốc:", e);
+    }
+    return text;
+}
+
+
 async function autoFill() {
     const hanziInput = document.getElementById('input-hanzi').value.trim();
     if (!hanziInput) {
