@@ -240,7 +240,8 @@ header {
 .btn-srs-2 { border-color: #ffe0b2; color: #ef6c00; background-color: #fff3e0; }
 .btn-srs-3 { border-color: #c8e6c9; color: #2e7d32; background-color: #e8f5e9; }
 .btn-srs-4 { border-color: #bbdefb; color: #1565c0; background-color: #e3f2fd; }
-.btn-srs-5 { border-color: #e0e0e0; color: #616161; background-color: #f5f5f5; }
+.btn-srs-5 { border-color: #b2dfdb; color: #00796b; background-color: #e0f2f1; }
+.btn-srs-6 { border-color: #e0e0e0; color: #616161; background-color: #f5f5f5; }
 
 /* Nút khôi phục */
 .btn-restore { background-color: #9c27b0; color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }

@@ -244,14 +244,38 @@ function createCardElement(word, isMasteredView = false) {
     const card = document.createElement('div');
     card.className = 'flashcard';
     
+    const exPinyin = (word.example_zh && window.pinyinPro) ? window.pinyinPro.pinyin(word.example_zh) : '';
+    
     const exampleHtml = (word.example_zh || word.example_en) ? `
         <div style="margin-top: 12px; padding-top: 8px; border-top: 1px dashed #ccc; font-size: 13.5px; text-align: left;">
-            <div style="color: #2b3a55; font-weight: bold; margin-bottom: 4px;">${word.example_zh || ''}</div>
+            <div style="color: #2b3a55; font-weight: bold; margin-bottom: 2px;">${word.example_zh || ''}</div>
+            ${exPinyin ? `<div style="color: #6c757d; font-size: 12.5px; margin-bottom: 4px;">${exPinyin}</div>` : ''}
             <div style="color: #6c757d; font-style: italic;">${word.example_en || ''}</div>
         </div>
     ` : '';
 
-    // Khởi tạo cụm nút action theo trạng thái tab
+    // LẬP LUẬN HIỂN THỊ THỜI GIAN: Tính toán trực tiếp không tốn bộ nhớ lưu trữ
+    let timeStatusHtml = '';
+    if (isMasteredView) {
+        timeStatusHtml = `<span style="color: #6c757d; font-size: 11px; background: #e9ecef; padding: 3px 8px; border-radius: 10px;"><i class="fas fa-check-circle"></i> Đã thuộc</span>`;
+    } else {
+        const now = Date.now();
+        const diffMs = (word.nextReview || now) - now;
+        
+        if (diffMs <= 0) {
+            timeStatusHtml = `<span style="color: #ea4335; font-size: 11px; background: #fce8e6; padding: 3px 8px; border-radius: 10px; font-weight: bold;"><i class="fas fa-fire"></i> Cần ôn ngay</span>`;
+        } else {
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            
+            if (diffDays > 0) {
+                timeStatusHtml = `<span style="color: #34a853; font-size: 11px; background: #e6f4ea; padding: 3px 8px; border-radius: 10px;"><i class="fas fa-clock"></i> Sau ${diffDays} ngày</span>`;
+            } else {
+                timeStatusHtml = `<span style="color: #fbbc04; font-size: 11px; background: #fef7e0; padding: 3px 8px; border-radius: 10px;"><i class="fas fa-clock"></i> Sau ${diffHours} giờ</span>`;
+            }
+        }
+    }
+
     const actionButtons = isMasteredView ? `
         <button class="action-icon" onclick="restoreWord(${word.id})" title="Khôi phục"><i class="fas fa-undo"></i></button>
         <button class="action-icon delete" onclick="deleteWord(${word.id}, 'mastered')" title="Xóa vĩnh viễn"><i class="fas fa-trash"></i></button>
@@ -264,11 +288,13 @@ function createCardElement(word, isMasteredView = false) {
         <div class="flashcard-header" style="align-items: flex-start; padding-right: 85px;">
             <div style="display: flex; flex-direction: column; gap: 6px;">
                 <span class="hanzi-text" style="line-height: 1.2;">${word.hanzi}</span>
-                <span class="word-type" style="background:#f1f3f5; padding:4px 8px; border-radius:6px; font-size:12px; color:#6c757d; display:inline-block; word-wrap: break-word; line-height: 1.3; width: fit-content;">${word.type || 'Noun'}</span>
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <span class="word-type" style="background:#f1f3f5; padding:4px 8px; border-radius:6px; font-size:12px; color:#6c757d; line-height: 1.3;">${word.type || 'Noun'}</span>
+                    ${timeStatusHtml}
+                </div>
             </div>
         </div>
         
-        <!-- Gom tất cả nút bấm vào chung một cụm để chống đè chéo -->
         <div style="position:absolute; top:15px; right:15px; display: flex; gap: 8px; align-items: center; background: white; padding-left: 5px;">
             <button class="btn-audio" onclick="playAudio('${word.hanzi}')" style="width: 32px; height: 32px; margin-right: 5px;"><i class="fas fa-volume-up"></i></button>
             ${actionButtons}
@@ -281,7 +307,6 @@ function createCardElement(word, isMasteredView = false) {
     
     return card;
 }
-
 // ==========================================
 // 3. THÊM TỪ TỰ ĐỘNG & GỌI API
 //    Tatoeba v1 -> proxy v1 -> proxy v0 -> dịch câu bằng MyMemory
@@ -721,7 +746,7 @@ function startReview() {
             </button>
         </div>
 
-        <input type="text" id="quiz-input" class="review-input" lang="zh-CN" oninput="this.style.color='#333'" placeholder="Nhập Chữ Hán hoặc Pinyin (Bấm \`)...">
+        <input type="text" id="quiz-input" class="review-input" lang="zh-CN" oninput="handleQuizInput(this)" placeholder="Nhập Hán/Pinyin (Bấm \` xem gợi ý, ~ đọc)...">
         
         <div id="action-buttons" class="review-actions">
             <button onclick="skipQuiz()" tabindex="-1" class="btn-danger"><i class="fas fa-eye"></i> Không nhớ</button>
@@ -730,6 +755,36 @@ function startReview() {
         <div id="quiz-feedback" class="feedback-msg"></div>
     `;
     document.getElementById('quiz-input').focus();
+}
+
+// HÀM BẮT QUẢ TANG BỘ GÕ IME
+// Thêm biến khóa thời gian ở ngay trên hàm để chống nhiễu từ bộ gõ
+let lastShortcutTime = 0;
+
+function handleQuizInput(el) {
+    el.style.color = '#333';
+    const val = el.value;
+    const now = Date.now();
+    
+    // Bắt quả tang tín hiệu phím
+    if (val.includes('·') || val.includes('`')) {
+        // Chỉ cho phép gọi gợi ý nếu cách lần gọi trước ít nhất 100ms
+        if (now - lastShortcutTime > 100) { 
+            showHint();
+            lastShortcutTime = now;
+        }
+    }
+    if (val.includes('～') || val.includes('~')) {
+        if (now - lastShortcutTime > 100) {
+            if (hintRevealed > 0 && currentQuizWord) {
+                playAudio(currentQuizWord.hanzi);
+            }
+            lastShortcutTime = now;
+        }
+    }
+    
+    // Tẩy xóa ký tự rác để dọn sạch ô nhập liệu
+    el.value = val.replace(/[`~·～]/g, '');
 }
 
 function showHint() {
@@ -837,11 +892,14 @@ async function updateSRS(level) {
         return Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
     };
     
+    // ... (đoạn đầu giữ nguyên)
     if (level === 1) currentQuizWord.nextReview = now + 30 * 60 * 1000; 
     else if (level === 2) currentQuizWord.nextReview = now + getRandomTime(1, 2); 
     else if (level === 3) currentQuizWord.nextReview = now + getRandomTime(3, 5); 
     else if (level === 4) currentQuizWord.nextReview = now + getRandomTime(5, 7); 
-    else if (level === 5) currentQuizWord.isMastered = true; 
+    else if (level === 5) currentQuizWord.nextReview = now + getRandomTime(8, 20); 
+    else if (level === 6) currentQuizWord.isMastered = true; 
+// ... (đoạn sau giữ nguyên)
 
     const index = vocabList.findIndex(w => w.id === currentQuizWord.id);
     if(index !== -1) vocabList[index] = currentQuizWord;
@@ -860,7 +918,8 @@ document.addEventListener('keydown', function(e) {
     const actionButtons = document.getElementById('action-buttons');
 
     if (srsControls && srsControls.style.display !== 'none') {
-        if (['1', '2', '3', '4', '5'].includes(e.key)) {
+        // Cho phép nhận tới phím 6
+        if (['1', '2', '3', '4', '5', '6'].includes(e.key)) {
             e.preventDefault(); 
             updateSRS(parseInt(e.key));
         }
@@ -874,9 +933,7 @@ document.addEventListener('keydown', function(e) {
             e.preventDefault(); 
             skipQuiz();
         } 
-        else if (e.key === '`') {
-            e.preventDefault(); 
-            showHint();
-        }
+        // LƯU Ý: Toàn bộ code bắt phím ` và ~ ở đây ĐÃ BỊ XÓA 
+        // để nhường 100% quyền kiểm soát cho hàm handleQuizInput (oninput)
     }
 });
